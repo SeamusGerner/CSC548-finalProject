@@ -41,3 +41,22 @@ npx expo start
 ```
 
 Copy `.env.example` to `.env` and fill in your Supabase project URL and anon key.
+
+To set up the database, run `supabase/schema.sql` in your Supabase project's SQL Editor. It creates the tables and Row Level Security policies.
+
+Other scripts:
+
+```bash
+npm run typecheck   # TypeScript check (tsc --noEmit)
+npm test            # Jest unit tests
+```
+
+## Project Structure
+
+```
+App.tsx              # app entry component
+src/screens/         # screen components (Split Builder, Workout Logger, History)
+src/types/           # shared TypeScript types mirroring the database schema
+supabase/schema.sql  # database tables + RLS policies
+docs/timeline.md     # sprint timeline
+```
