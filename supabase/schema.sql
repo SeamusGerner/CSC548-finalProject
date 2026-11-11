@@ -116,3 +116,24 @@ create policy "Users manage own sets" on public.sets
     select 1 from public.workouts w
     where w.id = workout_id and w.user_id = (select auth.uid())
   ));
+
+-- ---------------------------------------------------------------------------
+-- Profile row on sign-up
+-- ---------------------------------------------------------------------------
+
+-- Creates the public.users profile row whenever a new auth user signs up.
+create function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  insert into public.users (id, email)
+  values (new.id, new.email);
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
