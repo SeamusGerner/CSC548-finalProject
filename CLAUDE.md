@@ -22,12 +22,16 @@ Fall 2026, by Seamus Gerner and Jake Lee.
 app/                   # Expo Router routes (entry: "expo-router/entry")
   _layout.tsx          # AuthProvider + Stack.Protected: auth group when signed out, tabs when signed in
   (auth)/              # sign-in, sign-up
-  (tabs)/              # index (Splits), log, history; header has Sign Out
+  (tabs)/              # (splits) stack, log, history; headers have Sign Out
+    (splits)/          # index (split list) -> split/[splitId] -> day/[dayId]
 src/screens/           # screen components; route files just re-export these
-src/components/        # reusable UI (Button, TextField)
-src/lib/               # supabase.ts (client), auth.tsx (session context/useAuth), pure logic
+src/components/        # reusable UI (Button, TextField, SmallButton, ExercisePicker, ...)
+src/lib/               # supabase.ts (client), auth.tsx (useAuth), splits.ts (queries),
+                       # pure logic: validation.ts, ordering.ts (+ *.test.ts)
 src/types/index.ts     # data model types mirroring supabase/schema.sql
-supabase/schema.sql    # tables, indexes, RLS, sign-up profile trigger
+supabase/schema.sql    # full schema: tables, indexes, RLS, sign-up profile trigger
+supabase/migrations/   # incremental SQL for the live DB (YYYYMMDD_name.sql)
+supabase/seed.sql      # starter exercise library (22 exercises, re-runnable)
 docs/timeline.md       # sprint timeline
 ```
 
@@ -49,19 +53,24 @@ Defined in `supabase/schema.sql`; types in `src/types/index.ts` must stay in syn
 - `users`: profile row keyed to `auth.users.id`, created by the `on_auth_user_created`
   trigger on sign-up; `unit` is `'lb' | 'kg'`.
 - `splits`: a user's routine (e.g. "PPL"), owned by `user_id`.
-- `split_days`: ordered days in a split (`day_order`, unique per split).
+- `split_days`: ordered days in a split (`day_order`, unique per split, deferrable).
+- `split_day_exercises`: planned exercises for a day: `exercise_id`, `position`
+  (unique per day, deferrable), `target_sets`, `target_reps` (defaults 3 × 10).
 - `exercises`: shared library; read-only to signed-in users.
 - `workouts`: one session on a `date`, owned by `user_id`, optionally linked to a
   `split_day_id`, with `notes`.
 - `sets`: `exercise_id`, `set_no`, `weight`, `reps`, `rpe` (1–10); unique per
   (workout, exercise, set_no).
 
-Relationships: User → Split → SplitDay (planning). User → Workout (for a SplitDay)
-→ Set, and each Set references an Exercise (logging). Planned exercises per day
-(target sets/reps) are not modeled yet; that's coming with the split builder.
+Relationships: User → Split → SplitDay → SplitDayExercise → Exercise (planning).
+User → Workout (for a SplitDay) → Set → Exercise (logging).
 
-RLS: `splits`/`workouts` check `user_id = auth.uid()`; `split_days`/`sets` check
-ownership through the parent row; `users` checks `id = auth.uid()`.
+RLS: `splits`/`workouts` check `user_id = auth.uid()`; `split_days`, `sets`, and
+`split_day_exercises` check ownership through the parent row(s); `users` checks
+`id = auth.uid()`.
+
+Reordering: save the whole new order in one `upsert` (see `saveDayOrder`). The
+ordering constraints are deferrable so swapped values don't conflict mid-statement.
 
 ## Conventions
 
@@ -80,9 +89,9 @@ ownership through the parent row; `users` checks `id = auth.uid()`.
 - Supabase config comes from `EXPO_PUBLIC_SUPABASE_URL` (base URL, no `/rest/v1/`)
   and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (publishable key). Never the secret/service-role key.
 - Every user-owned table has RLS with ownership policies, added in the same change.
-- Schema changes update both `schema.sql` and `src/types/index.ts`. The live DB
-  already has `schema.sql` applied, so give a separate SQL snippet for changes
-  (re-running the full file fails with "already exists").
+- Schema changes update `schema.sql`, `src/types/index.ts`, and add a file in
+  `supabase/migrations/` for the live DB (re-running `schema.sql` fails with
+  "already exists"). Tell the user exactly what SQL to run.
 - Small conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`), one
   logical change each. Feature branches + PRs for anything beyond small fixes.
 - No `Co-Authored-By` or "Generated with Claude Code" lines in commits or PRs.
@@ -102,13 +111,15 @@ Prefer fewer, polished features over breadth.
 
 ## Current Status (Nov 11, 2026)
 
-Branch `feature/auth-and-split-builder` (catching up on Sprint 1, not merged yet):
-- Done and tested in Expo Go on Android: Expo Router nav, Supabase client,
-  email/password sign up / sign in / sign out, profile trigger, validation tests.
-- Supabase project is set up; `schema.sql` (with trigger) has been run.
-- Next: split builder (create split, add/rename/reorder days, planned exercises with
-  target sets/reps via a new `split_day_exercises` table + RLS), `supabase/seed.sql`
-  with ~20 common exercises, README setup steps, then push + PR for Seamus to review.
+Branch `feature/auth-and-split-builder` (Sprint 1 catch-up, not merged yet):
+- Done, tested in Expo Go on Android: Expo Router nav, Supabase client,
+  email/password sign up / sign in / sign out, profile trigger.
+- Done, not yet tested on device: split builder (create/rename/delete splits;
+  add/rename/reorder/delete days; add/remove/reorder exercises with target sets × reps),
+  `split_day_exercises` table + migration, exercise seed.
+- Supabase project is set up and `schema.sql` (with trigger) has been run. The
+  `20261111_split_day_exercises.sql` migration and `seed.sql` still need to be run.
+- Next: on-device test of the split builder, then push + PR for Seamus to review.
 - Not started: workout logger, rest timer, history, charts, PR detection, wger import.
 
 ## Before Final Submission
