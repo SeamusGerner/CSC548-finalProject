@@ -25,3 +25,14 @@ export function validateSignUp(
   if (password !== confirmPassword) return 'Passwords do not match.';
   return null;
 }
+
+// Upper bound for target sets/reps, to catch typos like 100 instead of 10.
+export const MAX_TARGET = 50;
+
+/** Parses a target sets/reps input. Returns a whole number from 1 to MAX_TARGET, or null. */
+export function parseTarget(text: string): number | null {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return value >= 1 && value <= MAX_TARGET ? value : null;
+}

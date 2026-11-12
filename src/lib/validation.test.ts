@@ -1,4 +1,10 @@
-import { MIN_PASSWORD_LENGTH, validateSignIn, validateSignUp } from './validation';
+import {
+  MAX_TARGET,
+  MIN_PASSWORD_LENGTH,
+  parseTarget,
+  validateSignIn,
+  validateSignUp,
+} from './validation';
 
 describe('validateSignIn', () => {
   it('accepts a valid email and password', () => {
@@ -42,5 +48,24 @@ describe('validateSignUp', () => {
 
   it('reports email errors before password errors', () => {
     expect(validateSignUp('', 'abc', 'xyz')).toBe('Enter your email.');
+  });
+});
+
+describe('parseTarget', () => {
+  it('parses a whole number', () => {
+    expect(parseTarget('8')).toBe(8);
+  });
+
+  it('trims whitespace', () => {
+    expect(parseTarget(' 12 ')).toBe(12);
+  });
+
+  it('accepts the bounds', () => {
+    expect(parseTarget('1')).toBe(1);
+    expect(parseTarget(String(MAX_TARGET))).toBe(MAX_TARGET);
+  });
+
+  it.each(['', '0', '-3', '2.5', 'ten', String(MAX_TARGET + 1)])('rejects %p', (input) => {
+    expect(parseTarget(input)).toBeNull();
   });
 });
