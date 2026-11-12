@@ -35,14 +35,46 @@ Final project for **CSC 548 – Software Engineering**, Fall 2026.
 
 ## Getting Started
 
+### 1. Install
+
 ```bash
 npm install
+```
+
+You'll also need the **Expo Go** app on your phone (Google Play / App Store).
+
+### 2. Set up Supabase
+
+1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
+2. In **SQL Editor**, run `supabase/schema.sql` (tables, Row Level Security, and the
+   trigger that creates a profile row on sign-up), then `supabase/seed.sql` (starter
+   exercise library).
+   - If your database was created from an older `schema.sql`, run the files in
+     `supabase/migrations/` instead of re-running `schema.sql`.
+3. Optional for development: turn off **Authentication → Sign In / Providers → Email →
+   Confirm email** so new accounts can sign in right away from Expo Go.
+
+### 3. Add your keys
+
+Copy `.env.example` to `.env` and fill in the values from **Project Settings → API Keys**
+and **Data API**:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<publishable / anon key>
+```
+
+Use the base URL (no `/rest/v1/`) and the publishable or anon key, never the secret or
+service-role key. `.env` is gitignored; don't commit it.
+
+### 4. Run
+
+```bash
 npx expo start
 ```
 
-Copy `.env.example` to `.env` and fill in your Supabase project URL and anon key.
-
-To set up the database, run `supabase/schema.sql` in your Supabase project's SQL Editor. It creates the tables and Row Level Security policies.
+Scan the QR code with Expo Go (same Wi-Fi as your computer). If your network blocks
+that, try `npx expo start --tunnel`.
 
 Other scripts:
 
@@ -54,9 +86,13 @@ npm test            # Jest unit tests
 ## Project Structure
 
 ```
-App.tsx              # app entry component
-src/screens/         # screen components (Split Builder, Workout Logger, History)
-src/types/           # shared TypeScript types mirroring the database schema
-supabase/schema.sql  # database tables + RLS policies
-docs/timeline.md     # sprint timeline
+app/                   # Expo Router routes: (auth) sign-in/up, (tabs) Splits / Log / History
+src/screens/           # screen components (route files re-export these)
+src/components/        # reusable UI
+src/lib/               # Supabase client, auth context, queries, pure logic (+ tests)
+src/types/             # shared TypeScript types mirroring the database schema
+supabase/schema.sql    # full database schema + RLS policies
+supabase/migrations/   # incremental SQL for databases created from an older schema
+supabase/seed.sql      # starter exercise library
+docs/timeline.md       # sprint timeline
 ```

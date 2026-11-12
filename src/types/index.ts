@@ -29,6 +29,15 @@ export interface Exercise {
   equipment: string | null;
 }
 
+export interface SplitDayExercise {
+  id: string;
+  split_day_id: string;
+  exercise_id: string;
+  position: number;
+  target_sets: number;
+  target_reps: number;
+}
+
 export interface Workout {
   id: string;
   user_id: string;
